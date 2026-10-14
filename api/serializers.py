@@ -38,7 +38,6 @@ class GenreSerializer(serializers.ModelSerializer):
 
     def get_books(self, obj):
         books = obj.book_set.all()
-        # bitta genre ko'rilganda manzilda pk bo'ladi
         if self.context['view'].kwargs.get('pk'):
             return [
                 {
