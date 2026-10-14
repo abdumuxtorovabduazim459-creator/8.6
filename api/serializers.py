@@ -4,6 +4,8 @@ from .models import Genre, Book, Comment
 
 
 class BookSerializer(serializers.ModelSerializer):
+    genre_info = serializers.SerializerMethodField()
+
     class Meta:
         model = Book
         exclude = []
@@ -12,21 +14,7 @@ class BookSerializer(serializers.ModelSerializer):
             'pages': {'min_value': 1},
         }
 
-
-class BookInGenreSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Book
-        exclude = ['genre']
-
-
-class BookDetailSerializer(serializers.ModelSerializer):
-    genre = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Book
-        exclude = []
-
-    def get_genre(self, obj):
+    def get_genre_info(self, obj):
         if obj.genre is None:
             return None
         return {
@@ -37,9 +25,7 @@ class BookDetailSerializer(serializers.ModelSerializer):
 
 
 class GenreSerializer(serializers.ModelSerializer):
-    books = serializers.SlugRelatedField(
-        source='book_set', many=True, read_only=True, slug_field='title'
-    )
+    books = serializers.SerializerMethodField()
 
     class Meta:
         model = Genre
@@ -50,13 +36,21 @@ class GenreSerializer(serializers.ModelSerializer):
             'description': {'required': False},
         }
 
-
-class GenreDetailSerializer(GenreSerializer):
-    books = serializers.SerializerMethodField()
-
     def get_books(self, obj):
         books = obj.book_set.all()
-        return BookInGenreSerializer(books, many=True).data
+        # bitta genre ko'rilganda manzilda pk bo'ladi
+        if self.context['view'].kwargs.get('pk'):
+            return [
+                {
+                    'id': b.id,
+                    'title': b.title,
+                    'author': b.author,
+                    'pages': b.pages,
+                    'published_year': b.published_year,
+                }
+                for b in books
+            ]
+        return [b.title for b in books]
 
 
 class CommentSerializer(serializers.ModelSerializer):

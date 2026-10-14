@@ -2,30 +2,20 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, DjangoModelPermissions
 
 from .models import Genre, Book, Comment
-from .serializers import (GenreSerializer, GenreDetailSerializer,
-                          BookSerializer, BookDetailSerializer,
-                          CommentSerializer)
+from .serializers import GenreSerializer, BookSerializer, CommentSerializer
 from .permissions import IsCommentOwner
 
 
 class GenreViewSet(ModelViewSet):
     permission_classes = [DjangoModelPermissions]
     queryset = Genre.objects.all()
-
-    def get_serializer_class(self):
-        if self.action == 'retrieve':
-            return GenreDetailSerializer
-        return GenreSerializer
+    serializer_class = GenreSerializer
 
 
 class BookViewSet(ModelViewSet):
     permission_classes = [DjangoModelPermissions]
     queryset = Book.objects.all()
-
-    def get_serializer_class(self):
-        if self.action == 'retrieve':
-            return BookDetailSerializer
-        return BookSerializer
+    serializer_class = BookSerializer
 
 
 class CommentViewSet(ModelViewSet):
