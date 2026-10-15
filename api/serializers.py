@@ -1,55 +1,53 @@
 from rest_framework import serializers
-
 from .models import Genre, Book, Comment
 
 
 class BookSerializer(serializers.ModelSerializer):
-    genre_info = serializers.SerializerMethodField()
+    class Meta:
+        model = Book
+        fields = '__all__'          
+
+
+class BookInGenreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Book
+        exclude = ['genre']        
+
+
+class GenreShortSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Genre
+        fields = ['id', 'name', 'description']
+
+
+class BookDetailSerializer(serializers.ModelSerializer):
+    genre = serializers.SerializerMethodField()
 
     class Meta:
         model = Book
-        exclude = []
-        read_only_fields = ['id']
-        extra_kwargs = {
-            'pages': {'min_value': 1},
-        }
+        fields = '__all__'
 
-    def get_genre_info(self, obj):
-        if obj.genre is None:
-            return None
-        return {
-            'id': obj.genre.id,
-            'name': obj.genre.name,
-            'description': obj.genre.description,
-        }
+    def get_genre(self, obj):       
+        if obj.genre:
+            return GenreShortSerializer(obj.genre).data
+        return None
 
 
 class GenreSerializer(serializers.ModelSerializer):
-    books = serializers.SerializerMethodField()
+    books = serializers.SlugRelatedField(
+        source='book_set', many=True, read_only=True, slug_field='title'
+    )
 
     class Meta:
         model = Genre
         fields = ['id', 'name', 'description', 'books']
-        read_only_fields = ['id']
-        extra_kwargs = {
-            'name': {'min_length': 2},
-            'description': {'required': False},
-        }
 
-    def get_books(self, obj):
-        books = obj.book_set.all()
-        if self.context['view'].kwargs.get('pk'):
-            return [
-                {
-                    'id': b.id,
-                    'title': b.title,
-                    'author': b.author,
-                    'pages': b.pages,
-                    'published_year': b.published_year,
-                }
-                for b in books
-            ]
-        return [b.title for b in books]
+
+class GenreDetailSerializer(GenreSerializer):
+    books = serializers.SerializerMethodField()
+
+    def get_books(self, obj):      
+        return BookInGenreSerializer(obj.book_set.all(), many=True).data
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -58,4 +56,4 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = ['id', 'book', 'user', 'text', 'created_at']
-        read_only_fields = ['id', 'user', 'created_at']
+        read_only_fields = ['user', 'created_at']
